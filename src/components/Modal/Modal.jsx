@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup' ;
 import Button from 'react-bootstrap/Button';
 import ModalBs from 'react-bootstrap/Modal';
 import FormBs from 'react-bootstrap/Form';
+import { ItemsContext, UPLOAD_ITEMS } from '../../context/itemsContext';
+import { axiosInstance } from '../../services/axios.config';
 
 
 const Modal = (props) => {
+
+    const {items, dispatch} = useContext(ItemsContext)
 
     const initialCredentials = {
         name: props.item.name || '',
@@ -44,9 +48,26 @@ const Modal = (props) => {
                 onSubmit={ async (values, {setSubmitting})  => {
                     // same shape as initial values
                     console.log(values);
-                    await props.onSubmit(props.item.id, values)
-                    setSubmitting(false)
-                    props.onHide()
+                    // await props.onSubmit(props.item.id, values)
+                    axiosInstance.put(`/${props.item.id}`, values)
+                        .then(r => {
+                            if (r.status === 200) {
+                                const itemsUpload = items.map(item => {
+                                    if (item.id === r.data.id) {
+                                        return r.data
+                                    }
+                                    return item
+                                })
+                                dispatch({type:UPLOAD_ITEMS, payload: itemsUpload})
+                                setSubmitting(false)
+
+                            }else{
+                                throw new Error(`[ERROR ${r.status}] Error en la solicitud`)
+                            }
+                            
+                        })
+                        .catch(err => console.log(err))
+                        props.onHide()
                 }}
             >
                 {({values, errors, touched, isSubmitting, handleChange}) => (
